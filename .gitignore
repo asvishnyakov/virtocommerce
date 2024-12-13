@@ -1,0 +1,10 @@
+cms-content/
+demos/
+modules/
+vc-deploy-dev/
+vc-frontend/
+vc-platform/
+VirtoCommerce.Platform/
+
+.env
+vc-platform.secrets.json

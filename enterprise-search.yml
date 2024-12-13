@@ -1,0 +1,21 @@
+allow_es_settings_modification: true
+
+elasticsearch.host: https://elastic-search:9200
+elasticsearch.username: elastic
+elasticsearch.password: ${ELASTIC_SEARCH_PASSWORD}
+
+elasticsearch.ssl.enabled: true
+elasticsearch.ssl.certificate_authority: /usr/share/enterprise-search/config/certs/ca/ca.crt
+
+kibana.host: https://kibana:5601
+kibana.external_url: https://kibana:5601
+
+secret_management.encryption_keys:
+  - ${ENTERPRISE_SEARCH_ENCRYPTION_KEYS}
+
+ent_search.external_url: https://enterprise-search:3002
+
+ent_search.ssl.enabled: true
+ent_search.ssl.keystore.path: /usr/share/enterprise-search/config/certs/enterprise-search/enterprise-search.jks
+ent_search.ssl.keystore.password: ${ENTERPRISE_SEARCH_PASSWORD}
+ent_search.ssl.keystore.key_password: ${ENTERPRISE_SEARCH_PASSWORD}

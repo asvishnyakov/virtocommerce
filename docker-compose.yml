@@ -1,0 +1,200 @@
+networks:
+  virtocommerce:
+    driver: bridge
+
+volumes:
+  mssql:
+    driver: local
+  elastic-certs:
+    driver: local
+  elastic-search:
+    driver: local
+  kibana:
+    driver: local
+  enterprise-search:
+    driver: local
+  redis:
+    driver: local
+
+services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:${MSSQL_SERVER_VERSION}
+    volumes:
+      - mssql:/var/opt/mssql
+    environment: 
+      - "ACCEPT_EULA=Y"
+      - "SA_PASSWORD=${MSSQL_SERVER_PASSWORD}"
+    mem_limit: 2147483648
+    networks:
+      - virtocommerce
+    ports:
+      - 127.0.0.1:${MSSQL_SERVER_PORT}:1433
+    hostname: mssql
+    restart: unless-stopped
+
+  elastic-setup:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTIC_SEARCH_VERSION}
+    volumes:
+      - elastic-certs:/usr/share/elasticsearch/config/certs
+    user: "0"
+    command: >
+      bash -c '
+        if [ x${ELASTIC_SEARCH_PASSWORD} == x ]; then
+          echo "Set the ELASTIC_SEARCH_PASSWORD environment variable in the .env file";
+          exit 1;
+        elif [ x${KIBANA_PASSWORD} == x ]; then
+          echo "Set the KIBANA_PASSWORD environment variable in the .env file";
+          exit 1;
+        fi;
+        if [ ! -f config/certs/ca.zip ]; then
+          echo "Creating CA";
+          bin/elasticsearch-certutil ca --silent --pem -out config/certs/ca.zip;
+          unzip config/certs/ca.zip -d config/certs;
+        fi;
+        if [ ! -f config/certs/certs.zip ]; then
+          echo "Creating certs";
+          echo -ne \
+          "instances:\n"\
+          "  - name: elastic-search\n"\
+          "    dns:\n"\
+          "      - elastic-search\n"\
+          "      - localhost\n"\
+          "    ip:\n"\
+          "      - 127.0.0.1\n"\
+          "  - name: kibana\n"\
+          "    dns:\n"\
+          "      - kibana\n"\
+          "      - localhost\n"\
+          "    ip:\n"\
+          "      - 127.0.0.1\n"\
+          "  - name: enterprise-search\n"\
+          "    dns:\n"\
+          "      - enterprise-search\n"\
+          "      - localhost\n"\
+          "    ip:\n"\
+          "      - 127.0.0.1\n"\
+          > config/certs/instances.yml;
+          bin/elasticsearch-certutil cert --silent --pem -out config/certs/certs.zip --in config/certs/instances.yml --ca-cert config/certs/ca/ca.crt --ca-key config/certs/ca/ca.key;
+          unzip config/certs/certs.zip -d config/certs;
+          openssl pkcs12 -export -in config/certs/enterprise-search/enterprise-search.crt -inkey config/certs/enterprise-search/enterprise-search.key -out config/certs/enterprise-search/enterprise-search.p12 -name enterprise-search -passout pass:${ENTERPRISE_SEARCH_PASSWORD};
+          /usr/share/elasticsearch/jdk/bin/keytool -importkeystore -srckeystore config/certs/enterprise-search/enterprise-search.p12 -srcstoretype PKCS12 -srcstorepass ${ENTERPRISE_SEARCH_PASSWORD} -destkeystore config/certs/enterprise-search/enterprise-search.jks -deststorepass ${ENTERPRISE_SEARCH_PASSWORD} -alias enterprise-search;
+        fi;
+        echo "Setting file permissions"
+        chown -R root:root config/certs;
+        find . -type d -exec chmod 750 \{\} \;;
+        find . -type f -exec chmod 640 \{\} \;;
+        echo "Waiting for Elasticsearch availability";
+        until curl -s --cacert config/certs/ca/ca.crt https://elastic-search:9200 | grep -q "missing authentication credentials"; do sleep 30; done;
+        echo "Setting kibana_system password";
+        until curl -s -X POST --cacert config/certs/ca/ca.crt -u "elastic:${ELASTIC_SEARCH_PASSWORD}" -H "Content-Type: application/json" https://elastic-search:9200/_security/user/kibana_system/_password -d "{\"password\":\"${KIBANA_PASSWORD}\"}" | grep -q "^{}"; do sleep 10; done;
+        echo "All done!";
+      '    
+    networks:
+      - virtocommerce
+    healthcheck:
+      test: ["CMD-SHELL", "[ -f config/certs/elastic-search/elastic-search.crt ] && [ -f config/certs/kibana/kibana.crt ] && [ -f config/certs/enterprise-search/enterprise-search.jks ]"]
+      interval: 1s
+      timeout: 5s
+      retries: 120
+
+  elastic-search:
+    depends_on:
+      elastic-setup:
+        condition: service_healthy
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTIC_SEARCH_VERSION}
+    volumes:
+      - ./elastic-search.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+      - elastic-certs:/usr/share/elasticsearch/config/certs
+      - elastic-search:/usr/share/elasticsearch/data
+    environment:
+      - ELASTIC_PASSWORD=${ELASTIC_SEARCH_PASSWORD}
+    mem_limit: 2684354560
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    networks:
+      - virtocommerce
+    ports:
+      - 127.0.0.1:${ELASTIC_SEARCH_PORT}:9200
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -s --cacert /usr/share/elasticsearch/config/certs/ca/ca.crt https://localhost:9200 -u elastic:${ELASTIC_SEARCH_PASSWORD} -I | grep -q 'HTTP/1.1 200 OK'",
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 120
+
+  kibana:
+    depends_on:
+      elastic-search:
+        condition: service_healthy
+    image: docker.elastic.co/kibana/kibana:${ELASTIC_SEARCH_VERSION}
+    volumes:
+      - ./kibana.yml:/usr/share/kibana/config/kibana.yml
+      - elastic-certs:/usr/share/kibana/config/certs
+      - kibana:/usr/share/kibana/data
+    environment:
+      - KIBANA_PASSWORD=${KIBANA_PASSWORD}
+    mem_limit: 1073741824
+    networks:
+      - virtocommerce
+    ports:
+      - 127.0.0.1:${KIBANA_PORT}:5601
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -s --cacert /usr/share/kibana/config/certs/ca/ca.crt -I https://localhost:5601 | grep -q 'HTTP/1.1 302 Found'",
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 120
+
+  enterprise-search:
+    depends_on:
+      elastic-search:
+        condition: service_healthy
+      kibana:
+        condition: service_healthy
+    image: docker.elastic.co/enterprise-search/enterprise-search:${ELASTIC_SEARCH_VERSION}
+    volumes:
+      - ./enterprise-search.yml:/usr/share/enterprise-search/config/enterprise-search.yml
+      - elastic-certs:/usr/share/enterprise-search/config/certs
+      - enterprise-search:/usr/share/enterprise-search/config
+    environment:
+      - ELASTIC_SEARCH_PASSWORD=${ELASTIC_SEARCH_PASSWORD}
+      - ENTERPRISE_SEARCH_ENCRYPTION_KEYS=${ENTERPRISE_SEARCH_ENCRYPTION_KEYS}
+      - ENTERPRISE_SEARCH_PASSWORD=${ENTERPRISE_SEARCH_PASSWORD}
+    mem_limit: 1073741824
+    networks:
+      - virtocommerce
+    ports:
+      - 127.0.0.1:${ENTERPRISE_SEARCH_PORT}:3002
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+            "CMD-SHELL",
+            "curl -s --cacert /usr/share/enterprise-search/config/certs/ca/ca.crt -I https://localhost:3002 | grep -q 'HTTP/1.1 302 Found'",
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 120
+
+  redis:
+    image: redis:${REDIS_VERSION}
+    command: redis-server --save "" --appendonly no --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis:/data
+    mem_limit: 268435456
+    networks:
+      - virtocommerce
+    ports:
+      - 127.0.0.1:${REDIS_PORT}:6379
+    hostname: redis
+    restart: unless-stopped

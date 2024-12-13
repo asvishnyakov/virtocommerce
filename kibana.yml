@@ -1,0 +1,18 @@
+server.name: kibana
+server.host: 0.0.0.0
+
+server.ssl.enabled: true
+server.ssl.certificate: /usr/share/kibana/config/certs/kibana/kibana.crt
+server.ssl.key: /usr/share/kibana/config/certs/kibana/kibana.key
+
+elasticsearch.hosts: [ "https://elastic-search:9200" ]
+elasticsearch.username: kibana_system
+elasticsearch.password: ${KIBANA_PASSWORD}
+
+elasticsearch.ssl.certificateAuthorities: /usr/share/kibana/config/certs/ca/ca.crt
+elasticsearch.ssl.verificationMode: certificate
+
+enterpriseSearch.host: https://enterprise-search:3002
+
+enterpriseSearch.ssl.certificateAuthorities: /usr/share/kibana/config/certs/ca/ca.crt
+enterpriseSearch.ssl.verificationMode: certificate
