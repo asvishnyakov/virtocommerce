@@ -13,7 +13,8 @@ kibana.external_url: https://kibana:5601
 secret_management.encryption_keys:
   - ${ENTERPRISE_SEARCH_ENCRYPTION_KEYS}
 
-ent_search.external_url: https://enterprise-search:3002
+ent_search.listen_host: 0.0.0.0
+ent_search.listen_port: 3002
 
 ent_search.ssl.enabled: true
 ent_search.ssl.keystore.path: /usr/share/enterprise-search/config/certs/enterprise-search/enterprise-search.jks
