@@ -20,3 +20,8 @@ ent_search.ssl.enabled: true
 ent_search.ssl.keystore.path: /usr/share/enterprise-search/config/certs/enterprise-search/enterprise-search.jks
 ent_search.ssl.keystore.password: ${ENTERPRISE_SEARCH_PASSWORD}
 ent_search.ssl.keystore.key_password: ${ENTERPRISE_SEARCH_PASSWORD}
+
+app_search.engine.document_size.limit: 1000000kb
+app_search.engine.total_fields.limit: 1000000
+app_search.engine.total_facet_values_returned.limit: 1000000
+app_search.engine.query.limit: 10000
