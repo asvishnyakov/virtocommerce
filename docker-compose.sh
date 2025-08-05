@@ -1,2 +1,2 @@
 #!/bin/sh
-gnome-terminal --title "Docker" --working-directory "$PWD" -- ./docker-compose.script.sh
+gnome-terminal --title "Docker" --working-directory "$PWD" -- bash -i ./docker-compose.script.sh
