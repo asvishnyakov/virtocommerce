@@ -1,4 +1,4 @@
 #!/bin/sh
-nvm use --lts
+nvm use
 yarn dev:expose | lolcat
 exec bash
