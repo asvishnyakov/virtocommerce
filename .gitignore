@@ -1,9 +1,12 @@
 cms-content/
 demos/
 modules/
-vc-deploy-dev/
+module-sources/*
+vc-deploy-*/
 vc-frontend/
+vc-modules/
 vc-platform/
+vc-shell/
 VirtoCommerce.Platform/
 
 .env
