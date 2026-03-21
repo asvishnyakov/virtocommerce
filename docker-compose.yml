@@ -5,6 +5,8 @@ networks:
 volumes:
   mssql:
     driver: local
+  postgres:
+    driver: local
   elastic-certs:
     driver: local
   elastic-search:
@@ -30,6 +32,20 @@ services:
     ports:
       - 127.0.0.1:${MSSQL_SERVER_PORT}:1433
     hostname: mssql
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:${POSTGRES_VERSION}
+    volumes:
+      - postgres:/var/lib/postgresql
+    environment:
+      - "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}"    
+    mem_limit: 268435456
+    networks:
+      - virtocommerce
+    ports:
+      - 127.0.0.1:${POSTGRES_PORT}:5432
+    hostname: postgres
     restart: unless-stopped
 
   elastic-setup:
