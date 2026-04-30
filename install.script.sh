@@ -2,7 +2,8 @@
 
 # Load environment variables from .env file
 if [ -f "../.env" ]; then
-    export $(grep -v '^#' ../.env | xargs)
+    # shellcheck disable=SC2046
+    export $(grep -v '^#' ../.env | tr -d '\r' | xargs)
 fi
 
 # Use CURRENT_DEPLOYMENT environment variable, fallback to vc-deploy-dev if not set

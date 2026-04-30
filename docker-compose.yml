@@ -204,7 +204,7 @@ services:
 
   redis:
     image: redis:${REDIS_VERSION}
-    command: redis-server --save "" --appendonly no --maxmemory 512mb --maxmemory-policy allkeys-lru
+    command: redis-server --save "" --appendonly no --maxmemory 512mb --maxmemory-policy allkeys-lru --requirepass ${REDIS_PASSWORD}
     volumes:
       - redis:/data
     mem_limit: 268435456
