@@ -12,4 +12,4 @@ VirtoCommerce.Platform/
 .env
 vc-platform.secrets.json
 
-virtocommerce_mssql.tar.gz
+marketplace_mssql.tar.gz
