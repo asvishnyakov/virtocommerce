@@ -1,4 +1,6 @@
 #!/bin/sh
+unset HISTFILE
+set +o history
 
 # Load environment variables from .env file
 if [ -f ".env" ]; then
