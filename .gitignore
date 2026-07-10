@@ -2,7 +2,9 @@ cms-content/
 demos/
 modules/
 module-sources/*
+vc-build/
 vc-deploy-*/
+vc-docs/
 vc-frontend/
 vc-modules/
 vc-platform/
