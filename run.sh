@@ -1,2 +1,2 @@
 ./VirtoCommerce.Platform.sh &
-./vc-frontend.sh
+./serena.sh
