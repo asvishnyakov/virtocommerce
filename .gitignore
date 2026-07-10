@@ -12,4 +12,5 @@ VirtoCommerce.Platform/
 .env
 vc-platform.secrets.json
 
+virtocommerce_elastic-certs.tar.gz
 virtocommerce_mssql.tar.gz
